@@ -99,7 +99,7 @@
         <div class="layui-form-item">
           <label class="layui-form-label">文件2</label>
           <div class="layui-input-block layui-upload">
-            <input type="text" id="secondSelect" placeholder="请选择xlsx文件" class="layui-input">
+            <input type="text" id="secondSelect" name="xlsxFile" placeholder="请选择xlsx文件" value="dfd" class="layui-input">
           </div>
         </div>
 
@@ -186,26 +186,28 @@
       upload.render({
         elem: '#firstSelect',
         url: '/file/upload/xlsx',
-        auto: false,
+        // auto: false,
         accept: 'file',
         // acceptMime: 'application/vnd.ms-excel, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         // exts: 'xlsx|xls',
         drag: true,
         choose: function (obj) {
           layer.msg('文件选择完成1')
-          obj.pushFile()
+          // obj.pushFile()
 
           obj.preview(function (index, file, result) {
             console.log('文件名：', file.name, 'infex', index)
           })
           // e.attr('text', "hahahah")
         },
-        bindAction: '#fileUpload',
+        // bindAction: '#fileUpload',
 
         before: function () {
           this.data = {
             deviceName : "nice_shot"
           }
+
+          layer.load()
         },
 
         progress: function (prgress, elem, responsed, index) {
@@ -214,12 +216,13 @@
         done: function (response, index, uploadInstance) {
           layer.msg('1文件上传完成', response)
 
-
+layer.closeAll('loading')
 
         },
         error: function (index, uploadInstance) {
           // layer.msg('发生错误:', error)
-          console.log('发生错误了', error)
+          layer.closeAll('loading')
+          console.log('发生错误了')
         }
       })
 
@@ -255,8 +258,8 @@
           // layer.msg('发生错误:', error)
           console.log('发生错误了', error)
         }
-      })*/
-    }) 
+      })  */
+    })
 
 
     //JS 

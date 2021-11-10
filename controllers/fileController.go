@@ -3,6 +3,8 @@ package controllers
 import (
 	util "kenshin/util"
 	"time"
+
+	"github.com/beego/beego/v2/core/logs"
 )
 
 // 所有的controller都继承当前controller
@@ -14,49 +16,49 @@ func (c *FileController) Get() {
 }
 
 func (c *FileController) Upload() {
-	// f, h, err := c.GetFile("file")
 
 	data := c.GetString("deviceName")
 
 	if len(data) == 0 {
-		println("参数获取失败")
+		logs.Info("参数获取失败")
 		data = time.Now().Format("2021_11_03")
 	}
 
-	println("额外参数: ", data)
+	logs.Info("额外参数: ", data)
 
-	go util.ReadExcelDataStream(c.Ctx.ResponseWriter, c.Ctx.Request)
-	/*
-		file, h, err := c.GetFile("file")
-		if err != nil {
-			// http.Error(w, err.Error(), http.StatusNoContent)
-			println("获取文件失败")
-			c.Ctx.WriteString("file fetched failured")
-			return
-		}
+	// go util.ReadExcelDataStream(c.Ctx.ResponseWriter, c.Ctx.Request)
 
-		defer file.Close()
+	file, h, err := c.GetFile("file")
+	if err != nil {
+		// http.Error(w, err.Error(), http.StatusNoContent)
+		logs.Info("获取文件失败")
+		c.Failure(201, "读取上传文件失败")
+		return
+	}
 
+	defer file.Close()
 
-		fileDirectory := "file/tmp/" + data
+	fileDirectory := "file/tmp/" + data
 
-		_, fileError := util.CreateFileDirectory(fileDirectory)
+	_, fileError := util.CreateFileDirectory(fileDirectory)
 
-		if fileError != nil {
-			println("文件创建失败", fileError.Error())
-			c.Ctx.WriteString("file created failured")
-			return
-		}
+	if fileError != nil {
+		logs.Info("文件创建失败", fileError.Error())
+		c.Failure(201, "文件保存失败")
+		return
+	}
 
-		saveErr := c.SaveToFile("file", fileDirectory+"/"+h.Filename)
+	saveErr := c.SaveToFile("file", fileDirectory+"/"+h.Filename)
 
-		if saveErr != nil {
-			println("保存文件失败", saveErr.Error())
-			c.Ctx.WriteString("file saved failured")
-			return
-		}
+	if saveErr != nil {
+		logs.Info("保存文件失败", saveErr.Error())
+		c.Failure(201, "文件保存失败")
+		return
+	}
 
-		println("file: ", h.Filename)
-		c.Data["json"] = "file uploaded successfully!"
-		c.Ctx.WriteString("upload successfully!") */
+	logs.Info("文件名称: ", h.Filename)
+
+	c.Data["XlsxFile"] = h.Filename
+
+	c.Success(map[string]string{"xlsx": h.Filename})
 }

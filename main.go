@@ -8,6 +8,7 @@ import (
 
 func main() {
 
+	beego.BConfig.WebConfig.AutoRender = false
 	// 文件路径下是静态文件 url: ***/sugar/***
 	go beego.SetStaticPath("sugar", "file")
 
