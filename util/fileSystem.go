@@ -1,13 +1,18 @@
 package kenshinUtil
 
 import (
+	"encoding/csv"
 	"fmt"
+	"io"
+	"log"
 	"net/http"
 	"os"
 	"path"
 	"strconv"
+	"strings"
 	"time"
 
+	"github.com/shakinm/xlsReader/xls"
 	"github.com/xuri/excelize/v2"
 )
 
@@ -196,4 +201,76 @@ func ReadExcelDataStream(w http.ResponseWriter, req *http.Request) {
 	fmt.Fprintf(w, "读取数据耗时%vms", totalTime)
 
 	// 保存文件到本地
+}
+
+// 读取csv文件
+func ReadCSVFile(filePath string) {
+	csvfile, err := os.Open(filePath)
+
+	if err != nil {
+		// logs.Error("读取csv文件失败:", err.Error())
+		return
+	}
+
+	defer csvfile.Close()
+
+	reader := csv.NewReader(csvfile)
+
+	for {
+		// Read each record from csv
+		_, err := reader.Read()
+
+		if err == io.EOF {
+			// 读取完毕
+			break
+		}
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		// fmt.Printf("Record has %d columns.\n", len(record))
+		// city, _ := iconv.ConvertString(record[2], "gb2312", "utf-8")
+
+		// fmt.Printf("%s %s %s \n", record[0], record[1], city)
+	}
+}
+
+// 读取xls文件
+func ReadXlsFile(filePath string) {
+	xlsFile, err := xls.OpenFile(filePath)
+
+	if err != nil {
+		return
+	}
+
+	sheet, err := xlsFile.GetSheet(0)
+
+	if err != nil {
+		return
+	}
+
+	rows := sheet.GetNumberRows()
+
+	for rowIndex := 0; rowIndex < rows; rowIndex++ {
+
+		if row, err := sheet.GetRow(rowIndex); err == nil && row != nil {
+			cols := row.GetCols()
+			if cols == nil || len(cols) < 1 {
+				continue
+			}
+
+			colen := len(cols)
+
+			print("%v:\t", rowIndex)
+
+			for colIndex := 0; colIndex < colen; colIndex++ {
+				cellValue := strings.TrimSpace(cols[colIndex].GetString())
+
+				print("%v\t", cellValue)
+			}
+
+			println()
+		}
+	}
 }
