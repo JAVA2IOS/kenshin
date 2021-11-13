@@ -14,6 +14,9 @@ func init() {
 
 	beego.Router("/", &controllers.BaseController{})
 
+	beego.Router("/auth/login", &controllers.BaseController{}, "get:Auth")
+
+	beego.Router("/auth/login", &controllers.BaseController{}, "post:ValidateAuth")
 	// 一个路径配置一个controller
 
 	//文件

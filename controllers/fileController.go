@@ -2,6 +2,7 @@ package controllers
 
 import (
 	util "kenshin/util"
+	"strings"
 	"time"
 
 	"github.com/beego/beego/v2/core/logs"
@@ -26,8 +27,6 @@ func (c *FileController) Upload() {
 
 	logs.Info("额外参数: ", data)
 
-	// go util.ReadExcelDataStream(c.Ctx.ResponseWriter, c.Ctx.Request)
-
 	file, h, err := c.GetFile("file")
 	if err != nil {
 		// http.Error(w, err.Error(), http.StatusNoContent)
@@ -38,7 +37,7 @@ func (c *FileController) Upload() {
 
 	defer file.Close()
 
-	fileDirectory := "file/tmp/" + data
+	fileDirectory := "file/tmp/" + strings.ReplaceAll(c.GetSession("uid").(string), " ", "_") + "/" + time.Now().Format("2021_11_03") + "/" + h.Filename
 
 	_, fileError := util.CreateFileDirectory(fileDirectory)
 
@@ -48,7 +47,7 @@ func (c *FileController) Upload() {
 		return
 	}
 
-	saveErr := c.SaveToFile("file", fileDirectory+"/"+h.Filename)
+	saveErr := c.SaveToFile("file", fileDirectory)
 
 	if saveErr != nil {
 		logs.Info("保存文件失败", saveErr.Error())

@@ -39,6 +39,8 @@ func CreateFileDirectory(filePath string) (bool, error) {
 
 			return false, cmdErr
 		}
+
+		println("文件夹创建成功: ", fileDirectory)
 	}
 
 	return true, nil

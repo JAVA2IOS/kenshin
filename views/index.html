@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <title>{{.SiteName}}</title>
+    <link rel="stylesheet" href="/static/layui/css/layui.css">
+
+</head>
+
+<body>
+    <div class="layui-layout layui-layout-admin layui-main layui-bg-green">
+
+        <header class="layui-elip layui-text" style="width: 82%">注册页</header>
+        <form class="layui-form" action="/auth/login" method="post">
+            <div class="layui-form-item">
+                <label class="layui-form-label">用户名</label>
+                <div class="layui-input-block">
+                    <input type="text" name="uid" required lay-verify="required" placeholder="请输入用户名"
+                        autocomplete="off" class="layui-input">
+                </div>
+            </div>
+
+            <div class="layui-form-item">
+                <div class="layui-input-block">
+                    <button class="layui-btn" lay-submit lay-filter="login">立即提交</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <script src="/static/layui/layui.js"></script>
+    <script>
+        layui.use(['form'], function (args) {
+            var layer = layui.layer;
+            var form = layui.form
+
+            form.on('submit(login)', function (data) {
+                // layui.layer.msg(JSON.stringify(data.field));
+                return true
+            });
+        });
+    </script>
+
+</body>
+
+</html>
