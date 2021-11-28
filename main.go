@@ -2,6 +2,7 @@ package main
 
 import (
 	_ "kenshin/routers"
+	"strings"
 
 	"github.com/beego/beego/v2/server/web/context"
 
@@ -12,9 +13,9 @@ func main() {
 
 	beego.BConfig.WebConfig.AutoRender = false
 
-	beego.InsertFilter("/", beego.BeforeRouter, func(ctx *context.Context) {
+	beego.InsertFilter("/*", beego.BeforeRouter, func(ctx *context.Context) {
 
-		if ctx.Request.URL.Path == "auth/login" {
+		if strings.Contains(ctx.Request.URL.Path, "auth/login") {
 			return
 		}
 

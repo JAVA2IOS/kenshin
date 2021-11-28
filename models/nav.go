@@ -9,5 +9,5 @@ type NaviAction struct {
 // 导航栏结构
 func NaviActions() []NaviAction {
 
-	return []NaviAction{NaviAction{Action: "jd_", Name: "京东"}, {Action: "pdd_", Name: "拼多多"}}
+	return []NaviAction{{Action: "jd_", Name: "京东"}, {Action: "pdd_", Name: "拼多多"}}
 }

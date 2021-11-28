@@ -52,7 +52,7 @@ func (baseController *BaseController) RenderDefaultConfig() {
 
 	navInnerHtml := ""
 	for _, value := range navMap {
-		navInnerHtml += "<dd><a href=\"url/" + value.Action + "\">" + value.Name + "</a></dd>"
+		navInnerHtml += "<dd><a href=\"/url/" + value.Action + "\">" + value.Name + "</a></dd>"
 	}
 
 	baseController.Data["Nav"] = navInnerHtml
