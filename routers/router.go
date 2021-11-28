@@ -14,6 +14,8 @@ func init() {
 
 	beego.Router("/", &controllers.BaseController{})
 
+	beego.Router("/url/:url", &controllers.DirecotryController{}, "get:Url")
+
 	beego.Router("/auth/login", &controllers.BaseController{}, "get:Auth")
 
 	beego.Router("/auth/login", &controllers.BaseController{}, "post:ValidateAuth")

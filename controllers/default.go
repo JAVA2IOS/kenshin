@@ -1,12 +1,22 @@
 package controllers
 
 import (
+	"kenshin/models"
 	kenshinUtil "kenshin/util"
 	"net/http"
 	"strings"
 
 	"github.com/beego/beego/v2/core/logs"
 	beego "github.com/beego/beego/v2/server/web"
+)
+
+type TemplateName string
+
+const (
+	HeaderTemplate       TemplateName = "header.tpl"      // 顶部模板
+	SideBarTemplate      TemplateName = "slider.tpl"      // 左边导航模板
+	MainTemplate         TemplateName = "main.html"       // 主题内容默认模板
+	JDUploadFileTemplate TemplateName = "fileUpload.html" // 京东xlsx文件上传模板
 )
 
 // 请求回调返回参数
@@ -21,23 +31,40 @@ type BaseController struct {
 	beego.Controller
 }
 
-func (baseController *BaseController) Prepare() {
+// 渲染内容模板
+func (baseController *BaseController) RenderContentHtml(tmplate TemplateName) {
+	baseController.TplName = string(tmplate)
+	baseController.Layout = "layoutContent.html"
+	baseController.LayoutSections = make(map[string]string)
+	baseController.LayoutSections["Header"] = string(HeaderTemplate)
+	baseController.LayoutSections["Slider"] = string(SideBarTemplate)
+	baseController.Render()
+}
+
+// 初始化默认参数配置
+func (baseController *BaseController) RenderDefaultConfig() {
 	baseController.Data["SiteName"] = "0NE DATE"
 	baseController.Data["AppName"] = "0NEDATE	FILE"
-	logs.Info("当前参数:", baseController.GetSession("uid"))
+
 	baseController.Data["Uid"] = baseController.GetSession("uid")
 
-	// println("当前Controller: ", baseController.Controller.Ctx.Input.RunController.Name())
+	navMap := models.NaviActions()
+
+	navInnerHtml := ""
+	for _, value := range navMap {
+		navInnerHtml += "<dd><a href=\"url/" + value.Action + "\">" + value.Name + "</a></dd>"
+	}
+
+	baseController.Data["Nav"] = navInnerHtml
+}
+
+func (baseController *BaseController) Prepare() {
+	baseController.RenderDefaultConfig()
 }
 
 func (c *BaseController) Get() {
 
-	c.Data["Website"] = "beego.me"
-	c.Data["Email"] = "astaxie@gmail.com"
-	c.Data["CustomText"] = "你好，第一个beego web 项目"
-
-	c.TplName = "main.html"
-	c.Render()
+	c.RenderContentHtml(MainTemplate)
 }
 
 // 成功回调参数

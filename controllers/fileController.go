@@ -2,6 +2,7 @@ package controllers
 
 import (
 	util "kenshin/util"
+	"strconv"
 	"strings"
 	"time"
 
@@ -18,15 +19,6 @@ func (c *FileController) Get() {
 
 func (c *FileController) Upload() {
 
-	data := c.GetString("deviceName")
-
-	if len(data) == 0 {
-		logs.Info("参数获取失败")
-		data = time.Now().Format("2021_11_03")
-	}
-
-	logs.Info("额外参数: ", data)
-
 	file, h, err := c.GetFile("file")
 	if err != nil {
 		// http.Error(w, err.Error(), http.StatusNoContent)
@@ -37,7 +29,9 @@ func (c *FileController) Upload() {
 
 	defer file.Close()
 
-	fileDirectory := "file/tmp/" + strings.ReplaceAll(c.GetSession("uid").(string), " ", "_") + "/" + time.Now().Format("2021_11_03") + "/" + h.Filename
+	dateDirectory := strconv.Itoa(time.Now().Local().Year()) + "_" + strconv.Itoa(int(time.Now().Local().Month())) + "_" + strconv.Itoa(time.Now().Local().Day())
+
+	fileDirectory := "file/tmp/" + strings.ReplaceAll(c.GetSession("uid").(string), " ", "_") + "/" + dateDirectory + "/" + h.Filename
 
 	_, fileError := util.CreateFileDirectory(fileDirectory)
 
@@ -59,5 +53,5 @@ func (c *FileController) Upload() {
 
 	c.Data["XlsxFile"] = h.Filename
 
-	c.Success(map[string]string{"xlsx": h.Filename})
+	c.Success(map[string]string{"xlsx": h.Filename, "url": fileDirectory})
 }
