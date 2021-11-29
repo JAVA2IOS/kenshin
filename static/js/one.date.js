@@ -1,4 +1,4 @@
-layui.use('upload', function () {
+layui.use(['upload'], function () {
   var $ = layui.jquery, upload = layui.upload
 
   upload.render({
@@ -51,50 +51,75 @@ layui.use('upload', function () {
   })
 })
 
-layui.use('form', function () {
-
-  var form = layui.form
-
-  form.on('submit(one-date-file-confirm)', function (data) {
-
-    accessJDXlsFile()
-
-    return false
-  });
+layui.use('jquery', function () {
+  var $ = layui.$
+  $(function () {
+    // 开启webSocket
+    webSocketConnect()
+  })
 })
 
-// 文件处理
-function accessJDXlsFile() {
-  var $ = layui.jquery
+//JS 
+layui.use(['element', 'layer', 'util', 'jquery'], function () {
+  var element = layui.element
+    , layer = layui.layer
+    , util = layui.util
+    , $ = layui.$;
 
-  // var file = []
+  //头部事件
+  util.event('lay-header-event', {
+    //左侧菜单事件
+    menuLeft: function (othis) {
+      layer.msg('展开左侧菜单的操作', { icon: 0 });
+    }
+    , menuRight: function () {
+      layer.open({
+        type: 1
+        , content: '<div style="padding: 15px;">处理右侧面板的操作</div>'
+        , area: ['260px', '100%']
+        , offset: 'rt' //右上角
+        , anim: 5
+        , shadeClose: true
+      });
+    }
+  });
 
-  // $("input[name='xlsxFile']").each(function () {
+  util.event('one-date-button', {
 
-    // var attrUrl = $(this).attr(OneDateFileBindSrcProperty)
+    // 文件上传
+    upload: function(d) {
 
-    // var domId = $(this).attr('id')
+      var files = []
 
-    // if (domId == 'undefined' || domId == nil) {
-    //   layer.msg("当前元素为空")
-    //   // return false
-    //   // break
-    // }
+      $("input[name='xlsxFile']").each(function () {
 
-    // if (attrUrl == 'undefined' || attrUrl == nil) {
-    //   layer.msg("file is empty")
-    //   // return false
-    //   // break
-    // }
+        var attrUrl = $(this).attr(OneDateFileBindSrcProperty)
 
-    // file[$(this).attr('id')] = attrUrl
-  // })
+        var domId = $(this).attr('id')
 
-  console.info("haha" + file)
+        if (domId == undefined || domId == 'nil') {
+          layer.msg("当前元素为空")
 
-  // return false
+          return false
+        }
+        
+        if (attrUrl == undefined || attrUrl == 'nil') {
+          layer.msg("文件为空")
+          return false
+        }
 
-  // request('post', '/xlsx/jd/access', file, function () {
+        files[$(this).attr('id')] = attrUrl
+      })
 
-  // })
-}
+      if (files.length == 0) {
+        // return
+      }
+
+      console.info('数据')
+
+      ODTask('GET', '/file/xlsx/' + $(this).attr('one-date-p'), files, function(){
+        console.info('hohoho')
+      })
+    }
+  })
+})

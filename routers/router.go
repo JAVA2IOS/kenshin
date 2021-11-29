@@ -24,5 +24,7 @@ func init() {
 	//文件
 	beego.Router("/file/upload/xlsx", &controllers.FileController{}, "post:Upload")
 
+	beego.Router("/file/xlsx/:url", &controllers.FileController{}, "get:AccessJDFile")
+
 	// go kenshinUtil.CreatNewExcelFile()
 }

@@ -27,5 +27,7 @@ func main() {
 	// 文件路径下是静态文件 url: ***/sugar/***
 	go beego.SetStaticPath("sugar", "file")
 
+	go beego.SetStaticPath("static", "static")
+
 	beego.Run()
 }

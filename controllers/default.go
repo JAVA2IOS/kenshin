@@ -81,6 +81,20 @@ func (c *BaseController) Success(data interface{}) {
 	c.ServeJSON()
 }
 
+// 成功返回提示留言
+func (c *BaseController) SuccessMessage(message string) {
+
+	sweetyResponse := SweetyResponse{
+		Code:    http.StatusOK,
+		Message: message,
+		Data:    nil,
+	}
+
+	c.Data["json"] = sweetyResponse
+
+	c.ServeJSON()
+}
+
 // 失败回调
 func (c *BaseController) Failure(code int, message string) {
 

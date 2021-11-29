@@ -55,3 +55,29 @@ func (c *FileController) Upload() {
 
 	c.Success(map[string]string{"xlsx": h.Filename, "url": fileDirectory})
 }
+
+func (c *FileController) AccessJDFile() {
+	// /file/xlsx/:url
+	url := c.Ctx.Input.Param(":url")
+	logs.Info("当前类型: ", url)
+	if url == "0" {
+		c.excuteJDFile()
+	}
+
+	c.SuccessMessage("文件上传成功")
+}
+
+func (c *FileController) excuteJDFile() bool {
+
+	erpFile := c.GetString("erp")
+
+	if len(erpFile) == 0 {
+
+		c.Failure(201, "找不到当前文件")
+		return false
+	}
+
+	logs.Info("当前文件:", erpFile)
+
+	return true
+}

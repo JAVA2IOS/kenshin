@@ -10,6 +10,7 @@ func (c *DirecotryController) Url() {
 	action := c.Ctx.Input.Param(":url")
 
 	if action == "jd_" {
+		c.Data["Platform"] = "<button class=\"layui-btn\" one-date-p=0 one-date-button=\"upload\" lay-filter=\"formConfirm\">立即提交</button>"
 		c.RenderContentHtml(JDUploadFileTemplate)
 		return
 	}
