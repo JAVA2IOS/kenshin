@@ -184,7 +184,7 @@ func ReadExcelDataStream(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	startTime := time.Now().UnixMilli()
+	startTime := time.Now().Unix()
 
 	for _, row := range rows {
 		for _, colCell := range row {
@@ -193,7 +193,7 @@ func ReadExcelDataStream(w http.ResponseWriter, req *http.Request) {
 		println()
 	}
 
-	endTime := time.Now().UnixMilli()
+	endTime := time.Now().Unix()
 
 	totalTime := endTime - startTime
 
