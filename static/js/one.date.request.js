@@ -1,25 +1,34 @@
+const ODTask = {
+    // 正常请求
+    task: function(method, url, parameters, callback) {
+        var $ = layui.$
+        $.ajax({
+            url: url,
+            type: method,
+            data: parameters,
+            success: function (response) {
+                // layer.msg("请求成功")
+                if (callback == undefined || callback == 'nil') {
+                    return
+                }
+    
+                callback(JSON.parse(JSON.stringify(response)))
+            },
+            error: function (error) {
+                console.info(error)
 
-function callback(func) {
-    func()
-}
-
-function ODTask(method, url, parameters, callback) {
-    var $ = layui.$
-    $.ajax({
-        url: url,
-        type: method,
-        success: function (response) {
-
-            layer.msg("请求成功")
-            if (func == undefined || func == 'nil') {
-                return
+                ODToast.error(error.statusText)
             }
+        })
+    },
 
-            callback(response)
-        },
-        error: function (error) {
-            console.info(error)
-            layer.msg("请求出错" + error.statusText)
-        }
-    })
+    // GET请求
+    GET: function(url, parameters, callback) {
+        this.task('GET', url, parameters, callback)
+    },
+
+    // post请求
+    POST: function(url, parameters, callback) {
+        this.task('POST', url, parameters, callback)
+    },
 }

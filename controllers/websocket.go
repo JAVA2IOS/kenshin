@@ -45,7 +45,7 @@ func (ws *KenShinSocketController) Get() {
 
 		time.Sleep(3 * time.Second)
 
-		SendMessage("发消息咯:" + time.Now().Format("2021-10-11 01:00:00"))
+		SendMessage("发消息咯:" + time.Now().Format("2021-10-31 14:59:59"))
 
 		// 获取消息
 		var receivedMessage = Message{}

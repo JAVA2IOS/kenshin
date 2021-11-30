@@ -9,30 +9,20 @@ layui.use(['upload'], function () {
     exts: 'xlsx|xls|csv',
     drag: true,
     choose: function (obj) {
-
-      // obj.pushFile()
-
-      obj.preview(function (index, file, result) {
-        console.log('文件名：', file.name, 'infex', index)
-      })
-
     },
 
     before: function () {
-      // this.data = {
-      //   deviceName: "nice_shot"
-      // }
-
       layer.load()
     },
 
     progress: function (prgress, elem, responsed, index) {
-      console.log('1百分比:', prgress, '%')
+      // console.log('1百分比:', prgress, '%')
     },
     done: function (response, index, uploadInstance) {
       layer.closeAll('loading')
 
-      layer.msg('文件上传完成', response)
+      ODToast.success('文件上传完成')
+
       var elem = this.item
 
       var data = response.Data
@@ -87,7 +77,7 @@ layui.use(['element', 'layer', 'util', 'jquery'], function () {
   util.event('one-date-button', {
 
     // 文件上传
-    upload: function(d) {
+    upload: function (d) {
 
       var files = []
 
@@ -98,13 +88,12 @@ layui.use(['element', 'layer', 'util', 'jquery'], function () {
         var domId = $(this).attr('id')
 
         if (domId == undefined || domId == 'nil') {
-          layer.msg("当前元素为空")
-
+          ODToast.error("当前元素为空")
           return false
         }
-        
+
         if (attrUrl == undefined || attrUrl == 'nil') {
-          layer.msg("文件为空")
+          ODToast.error("文件为空")
           return false
         }
 
@@ -112,13 +101,20 @@ layui.use(['element', 'layer', 'util', 'jquery'], function () {
       })
 
       if (files.length == 0) {
-        // return
+        return
       }
 
-      console.info('数据')
+      console.info('数据: ' + files)
 
-      ODTask('GET', '/file/xlsx/' + $(this).attr('one-date-p'), files, function(){
-        console.info('hohoho')
+      ODTask.GET('/file/xlsx/' + $(this).attr('one-date-p'), files, function (response) {
+        
+        if (response.Code != 200) {
+          // alert("错误: " + response.Message)
+          ODToast.error('错误:' + response.Message)
+          return
+        }
+
+        console.info('data:' + response.Message)
       })
     }
   })
