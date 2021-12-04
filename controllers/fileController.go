@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"kenshin/models"
 	util "kenshin/util"
 	"strconv"
 	"strings"
@@ -59,9 +60,10 @@ func (c *FileController) Upload() {
 func (c *FileController) AccessJDFile() {
 	// /file/xlsx/:url
 	url := c.Ctx.Input.Param(":url")
-	logs.Info("当前类型: ", url)
+
 	if url == "0" {
 		c.excuteJDFile()
+		return
 	}
 
 	c.SuccessMessage("文件上传成功")
@@ -73,11 +75,44 @@ func (c *FileController) excuteJDFile() bool {
 
 	if len(erpFile) == 0 {
 
-		c.Failure(201, "找不到当前文件")
+		c.Failure(201, "找不到ERP订单明细文件")
 		return false
 	}
 
-	logs.Info("当前文件:", erpFile)
+	cosFile := c.GetString("cos")
+
+	if len(cosFile) == 0 {
+
+		c.Failure(201, "找不到成本表文件")
+		return false
+	}
+
+	dateDirectory := strconv.Itoa(time.Now().Local().Year()) + "_" + strconv.Itoa(int(time.Now().Local().Month())) + "_" + strconv.Itoa(time.Now().Local().Day())
+
+	childDirectory := "/tmp/" + strings.ReplaceAll(c.GetSession("uid").(string), " ", "_") + "/" + dateDirectory + "/" + "京东单品毛利润_" + dateDirectory + ".xlsx"
+
+	fileDirectory := "file" + childDirectory
+
+	jdFile := new(models.JDExcelFile)
+
+	jdFile.ERP = erpFile
+
+	jdFile.CostFile = cosFile
+
+	jdFile.FileAccess(fileDirectory)
+
+	if jdFile.Error == nil {
+		jdFile.StaticFile = "sugar" + childDirectory
+	}
+
+	if jdFile.Error != nil {
+
+		c.Failure(201, jdFile.Error.Error())
+
+		return false
+	}
+
+	c.Success(map[string]string{"file": jdFile.StaticFile})
 
 	return true
 }

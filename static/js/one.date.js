@@ -79,7 +79,7 @@ layui.use(['element', 'layer', 'util', 'jquery'], function () {
     // 文件上传
     upload: function (d) {
 
-      var files = []
+      var files = new Map()
 
       $("input[name='xlsxFile']").each(function () {
 
@@ -97,24 +97,24 @@ layui.use(['element', 'layer', 'util', 'jquery'], function () {
           return false
         }
 
-        files[$(this).attr('id')] = attrUrl
+        files[domId] = attrUrl
       })
 
       if (files.length == 0) {
         return
       }
 
-      console.info('数据: ' + files)
+      layer.load()
 
       ODTask.GET('/file/xlsx/' + $(this).attr('one-date-p'), files, function (response) {
-        
+
         if (response.Code != 200) {
           // alert("错误: " + response.Message)
           ODToast.error('错误:' + response.Message)
           return
         }
 
-        console.info('data:' + response.Message)
+        ODToast.success('文件处理成功: ', JSON.stringify(response.Data))
       })
     }
   })
