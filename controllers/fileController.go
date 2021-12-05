@@ -89,7 +89,9 @@ func (c *FileController) excuteJDFile() bool {
 
 	dateDirectory := strconv.Itoa(time.Now().Local().Year()) + "_" + strconv.Itoa(int(time.Now().Local().Month())) + "_" + strconv.Itoa(time.Now().Local().Day())
 
-	childDirectory := "/tmp/" + strings.ReplaceAll(c.GetSession("uid").(string), " ", "_") + "/" + dateDirectory + "/" + "京东单品毛利润_" + dateDirectory + ".xlsx"
+	fileName := dateDirectory + "_" + strconv.Itoa(time.Now().Local().Hour()) + strconv.Itoa(time.Now().Local().Minute()) + strconv.Itoa(time.Now().Local().Second())
+
+	childDirectory := "/tmp/" + strings.ReplaceAll(c.GetSession("uid").(string), " ", "_") + "/" + dateDirectory + "/" + "京东单品毛利润_" + fileName + ".xlsx"
 
 	fileDirectory := "file" + childDirectory
 

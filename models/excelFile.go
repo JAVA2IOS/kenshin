@@ -36,7 +36,7 @@ func (file *JDExcelFile) FileAccess(filePath string) {
 		return
 	}
 
-	mapSheets := mergeJDErpFile(erpRows[1:])
+	mapSheets, invalidatedSheets := mergeJDErpFile(erpRows[1:])
 
 	if len(mapSheets) == 0 {
 		file.Error = errors.New("获取数据为空")
@@ -51,12 +51,27 @@ func (file *JDExcelFile) FileAccess(filePath string) {
 		return
 	}
 
+	cosMapSheets := excuteMergedCostFile(cosRows[1:])
+
 	// 创建excel
 	createExcelFile := excelize.NewFile()
 
 	sheetName := "表单1"
 
-	sheet := createExcelFile.NewSheet(sheetName)
+	sheet := 0
+
+	if createExcelFile.SheetCount > 0 {
+
+		sheetName = createExcelFile.GetSheetName(sheet)
+
+	} else {
+
+		sheet = createExcelFile.NewSheet(sheetName)
+
+		createExcelFile.SetActiveSheet(sheet)
+	}
+
+	createExcelFile.SetSheetPrOptions(sheetName, excelize.EnableFormatConditionsCalculation(true), excelize.FitToPage(true))
 
 	// 行索引
 	rowIndex := 1
@@ -64,6 +79,7 @@ func (file *JDExcelFile) FileAccess(filePath string) {
 	for _, value := range mapSheets {
 
 		for columnIndex := 0; columnIndex < len(value); columnIndex++ {
+
 			columnName, err := excelize.ColumnNumberToName(columnIndex + 1)
 
 			if err != nil {
@@ -78,17 +94,88 @@ func (file *JDExcelFile) FileAccess(filePath string) {
 				continue
 			}
 
-			setErr := createExcelFile.SetCellValue(sheetName, cellIndex, value[columnIndex])
+			switch columnIndex + 1 {
+			case len(value):
+				{
+					// 添加`成本`数据
+					costGoosFloatValue := mergeCostColumns(cosMapSheets, value[0].(string))
 
-			if setErr != nil {
-				logs.Info("设置单元格数据失败:", setErr.Error())
+					// 成本 = 单价 * 发货数量
+					costValue := costGoosFloatValue * float64(value[columnIndex].(int64))
+
+					// 替换 `发货数量` -> `成本`
+					setErr := createExcelFile.SetCellValue(sheetName, cellIndex, costValue)
+
+					if setErr != nil {
+						logs.Info("设置单元格数据失败:", setErr.Error())
+					}
+				}
+			default:
+				{
+					setErr := createExcelFile.SetCellValue(sheetName, cellIndex, value[columnIndex])
+
+					if setErr != nil {
+						logs.Info("设置单元格数据失败:", setErr.Error())
+					}
+				}
 			}
 		}
 
 		rowIndex += 1
 	}
 
-	createExcelFile.SetActiveSheet(sheet)
+	// 保留未符合筛选条件的数据
+	if len(invalidatedSheets) > 0 {
+
+		invalidatedSheetName := "未符合条件订单明细"
+
+		createExcelFile.NewSheet(invalidatedSheetName)
+
+		invalidateRowIndex := 1
+
+		createExcelFile.SetSheetPrOptions(invalidatedSheetName, excelize.EnableFormatConditionsCalculation(true), excelize.FitToPage(true))
+
+		// 插入表头
+		columnTitleName, err := excelize.ColumnNumberToName(1)
+
+		if err == nil {
+			cellTitleIndex, err := excelize.JoinCellName(columnTitleName, invalidateRowIndex)
+
+			if err == nil {
+				createExcelFile.SetSheetRow(invalidatedSheetName, cellTitleIndex, &erpRows[0])
+			}
+		}
+
+		invalidateRowIndex += 1
+
+		for _, value := range invalidatedSheets {
+
+			for columnIndex := 0; columnIndex < len(value); columnIndex++ {
+
+				columnName, err := excelize.ColumnNumberToName(columnIndex + 1)
+
+				if err != nil {
+					logs.Info("获取列名失败:", err.Error())
+					continue
+				}
+
+				cellIndex, err := excelize.JoinCellName(columnName, invalidateRowIndex)
+
+				if err != nil {
+					logs.Info("列名索引创建失败:", err.Error())
+					continue
+				}
+
+				setErr := createExcelFile.SetCellValue(invalidatedSheetName, cellIndex, value[columnIndex])
+
+				if setErr != nil {
+					logs.Info("设置单元格数据失败:", setErr.Error())
+				}
+			}
+
+			invalidateRowIndex += 1
+		}
+	}
 
 	kenshinUtil.CreateFileDirectory(filePath)
 
@@ -134,18 +221,26 @@ func openXlsxFile(file string) ([][]string, error) {
 		return nil, err
 	}
 
+	if len(rows) == 0 {
+		return nil, errors.New("文件数据获取为空")
+	}
+
 	return rows, nil
 }
+
+/// 订单明细表
 
 /* 京东ERP文件数据获取合并买家支付金额
 @rows 表单数据
 */
-func mergeJDErpFile(rows [][]string) map[string][]interface{} {
-	/* 店铺名称[B], 商品代码[E], 商品名称[F], 发货数[H], 买家支付金额[I + J], 平台规格名称[N] */
+func mergeJDErpFile(rows [][]string) (map[string][]interface{}, map[string][]string) {
+	/* 商品代码[E], 商品名称[F], 买家支付金额[I + J], 发货数[H]*/
 
 	mergeRows := make(map[string][]interface{})
 
-	for _, row := range rows {
+	invalidatedMergeRows := make(map[string][]string)
+
+	for rowIndex, row := range rows {
 
 		if row[11] == "退款" || row[12] != "不是" {
 			continue
@@ -186,11 +281,17 @@ func mergeJDErpFile(rows [][]string) map[string][]interface{} {
 		mergedPayedFloatValue := platformPayedFloatValue + buyerPayedFloatValue
 
 		// 不存在直接添加
-		if len(savedRow) == 0 || savedRow == nil {
+		if len(savedRow) == 0 || savedRow == nil || len(mergeValue) == 0 {
 
-			newRow := []interface{}{row[1], row[4], row[5], sentGoodsIntValue, mergedPayedFloatValue, row[13]}
+			newRow := []interface{}{row[4], row[5], mergedPayedFloatValue, sentGoodsIntValue}
 
-			mergeRows[mergeValue] = newRow
+			if len(mergeValue) == 0 {
+
+				invalidatedMergeRows[string(rowIndex)] = row
+
+			} else {
+				mergeRows[mergeValue] = newRow
+			}
 
 		} else {
 			// 合并数据
@@ -199,11 +300,31 @@ func mergeJDErpFile(rows [][]string) map[string][]interface{} {
 			savedRow[3] = savedRow[3].(int64) + sentGoodsIntValue
 
 			// 买家金额
-			savedRow[4] = savedRow[4].(float64) + mergedPayedFloatValue
+			savedRow[2] = savedRow[2].(float64) + mergedPayedFloatValue
 		}
 	}
 
-	return mergeRows
+	return mergeRows, invalidatedMergeRows
+}
+
+///  成本表数据筛选
+
+/* 从成本数据内筛选获取具体的成本数据 */
+func mergeCostColumns(rows map[string][]interface{}, rowIndexValue string) float64 {
+
+	costGoodsNumber := 0.0
+
+	for _, value := range rows {
+
+		if len(value) > 4 {
+			if rowIndexValue == value[1] {
+				costGoodsNumber = value[4].(float64)
+				break
+			}
+		}
+	}
+
+	return costGoodsNumber
 }
 
 /* 合并成本表数据 */
@@ -211,38 +332,51 @@ func excuteMergedCostFile(rows [][]string) map[string][]interface{} {
 
 	mergeRows := make(map[string][]interface{})
 
-	for _, row := range rows {
+	for rowIndex, row := range rows {
 
-		// 索引下标
-		mergeValue := row[1]
+		if len(row) > 4 {
+			// 索引下标
+			mergeValue := row[1]
 
-		savedRow := mergeRows[mergeValue]
+			savedRow := mergeRows[mergeValue]
 
-		// 发货数
-		sentGoodsStringValue := row[4]
+			// 成本
+			costGoodsStringValue := row[4]
 
-		sentGoodsIntValue, err := strconv.ParseInt(sentGoodsStringValue, 10, 64)
+			costGoodsIntValue, err := strconv.ParseFloat(costGoodsStringValue, 64)
 
-		if err != nil {
-			sentGoodsIntValue = 0
-		}
+			if err != nil {
+				costGoodsIntValue = 0
+			}
 
-		// 不存在直接添加
-		if len(savedRow) == 0 || savedRow == nil {
+			// 不存在直接添加
+			if len(savedRow) == 0 || savedRow == nil || len(mergeValue) == 0 {
 
-			newRow := []interface{}
-			
+				newRow := make([]interface{}, len(row))
 
-			mergeRows[mergeValue] = newRow
+				for key, value := range row {
 
+					if key == 4 {
+						newRow[key] = costGoodsIntValue
+					} else {
+						newRow[key] = value
+					}
+
+				}
+
+				if len(mergeValue) == 0 {
+					mergeRows[string(rowIndex)] = newRow[:]
+				} else {
+					mergeRows[mergeValue] = newRow[:]
+				}
+
+			} else {
+				// 合并数据
+				// 成本
+				savedRow[4] = savedRow[4].(float64) + costGoodsIntValue
+			}
 		} else {
-			// 合并数据
-
-			// 发货数量
-			savedRow[3] = savedRow[3].(int64) + sentGoodsIntValue
-
-			// 买家金额
-			savedRow[4] = savedRow[4].(float64) + mergedPayedFloatValue
+			logs.Info("当前行数据:", row)
 		}
 	}
 
