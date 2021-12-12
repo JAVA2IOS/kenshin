@@ -23,6 +23,8 @@ type JDExcelFile struct {
 	ERP string // erp表
 
 	CostFile string // 成本表
+
+	MoneyFile string // 快车表
 }
 
 // 京东文件处理
@@ -73,14 +75,42 @@ func (file *JDExcelFile) FileAccess(filePath string) {
 
 	createExcelFile.SetSheetPrOptions(sheetName, excelize.EnableFormatConditionsCalculation(true), excelize.FitToPage(true))
 
+	/* 商品代码, 商品名称, 买家支付金额, 发货数/入仓费, 税费, 平台扣点, [成本], [京准通]*/
+
+	rate := 0.0834
+
+	platFormPayedRate := 0.05
+
 	// 行索引
 	rowIndex := 1
 
+	// 插入标题
+	columnTitleName, err := excelize.ColumnNumberToName(1)
+
+	if err == nil {
+		cellTitleIndex, err := excelize.JoinCellName(columnTitleName, rowIndex)
+
+		if err == nil {
+			// 插入row
+			createExcelFile.SetSheetRow(sheetName, cellTitleIndex, &[]string{"商品代码", "商品名称", "买家支付金额", "发货数/入仓费", "税费", "平台扣点", "成本", "京准通"})
+
+			rowIndex += 1
+		} else {
+			logs.Info("列名索引创建失败:", err.Error())
+		}
+	} else {
+		logs.Info("标题索引创建失败", err.Error())
+	}
+
 	for _, value := range mapSheets {
 
-		for columnIndex := 0; columnIndex < len(value); columnIndex++ {
+		columnValueIndex := 0
 
-			columnName, err := excelize.ColumnNumberToName(columnIndex + 1)
+		for _, cell := range value {
+
+			columnValueIndex += 1
+
+			columnName, err := excelize.ColumnNumberToName(columnValueIndex)
 
 			if err != nil {
 				logs.Info("获取列名失败:", err.Error())
@@ -94,31 +124,39 @@ func (file *JDExcelFile) FileAccess(filePath string) {
 				continue
 			}
 
-			switch columnIndex + 1 {
-			case len(value):
-				{
-					// 添加`成本`数据
-					costGoosFloatValue := mergeCostColumns(cosMapSheets, value[0].(string))
+			createExcelFile.SetCellValue(sheetName, cellIndex, cell)
+		}
 
-					// 成本 = 单价 * 发货数量
-					costValue := costGoosFloatValue * float64(value[columnIndex].(int64))
+		// `买家金额` 坐标 `*3`
+		cellNameIndex, success := getCellDescriptionName(rowIndex, 3)
 
-					// 替换 `发货数量` -> `成本`
-					setErr := createExcelFile.SetCellValue(sheetName, cellIndex, costValue)
+		if success {
+			// 税费 = 买家金额 * rate
 
-					if setErr != nil {
-						logs.Info("设置单元格数据失败:", setErr.Error())
-					}
-				}
-			default:
-				{
-					setErr := createExcelFile.SetCellValue(sheetName, cellIndex, value[columnIndex])
+			columnValueIndex += 1
 
-					if setErr != nil {
-						logs.Info("设置单元格数据失败:", setErr.Error())
-					}
-				}
-			}
+			strScore := strconv.FormatFloat(rate, 'f', 10, 64)
+
+			setSheetCellFormula(createExcelFile, sheetName, rowIndex, columnValueIndex, "PRODUCT("+cellNameIndex+","+strScore+")")
+
+			// 平台扣点 = 买家金额 * platFormPayedRate
+			columnValueIndex += 1
+
+			platFormRateString := strconv.FormatFloat(platFormPayedRate, 'f', 10, 64)
+
+			setSheetCellFormula(createExcelFile, sheetName, rowIndex, columnValueIndex, "PRODUCT("+cellNameIndex+","+platFormRateString+")")
+		}
+
+		if len(value) > 1 {
+			// 添加`成本`数据
+			costGoosFloatValue := mergeCostColumns(cosMapSheets, value[0].(string))
+
+			// 成本 = 单价 * 发货数量
+			costValue := costGoosFloatValue * float64(value[len(value)-1].(int64))
+
+			columnValueIndex += 1
+
+			insertSheetFileCell(createExcelFile, sheetName, rowIndex, columnValueIndex, costValue)
 		}
 
 		rowIndex += 1
@@ -150,28 +188,21 @@ func (file *JDExcelFile) FileAccess(filePath string) {
 
 		for _, value := range invalidatedSheets {
 
-			for columnIndex := 0; columnIndex < len(value); columnIndex++ {
+			columnName, err := excelize.ColumnNumberToName(1)
 
-				columnName, err := excelize.ColumnNumberToName(columnIndex + 1)
-
-				if err != nil {
-					logs.Info("获取列名失败:", err.Error())
-					continue
-				}
-
-				cellIndex, err := excelize.JoinCellName(columnName, invalidateRowIndex)
-
-				if err != nil {
-					logs.Info("列名索引创建失败:", err.Error())
-					continue
-				}
-
-				setErr := createExcelFile.SetCellValue(invalidatedSheetName, cellIndex, value[columnIndex])
-
-				if setErr != nil {
-					logs.Info("设置单元格数据失败:", setErr.Error())
-				}
+			if err != nil {
+				logs.Info("获取列名失败:", err.Error())
+				continue
 			}
+
+			cellIndex, err := excelize.JoinCellName(columnName, invalidateRowIndex)
+
+			if err != nil {
+				logs.Info("列名索引创建失败:", err.Error())
+				continue
+			}
+
+			createExcelFile.SetSheetRow(invalidatedSheetName, cellIndex, &value)
 
 			invalidateRowIndex += 1
 		}
@@ -226,6 +257,46 @@ func openXlsxFile(file string) ([][]string, error) {
 	}
 
 	return rows, nil
+}
+
+func getCellDescriptionName(rowIndex int, columnIndex int) (string, bool) {
+	columnName, err := excelize.ColumnNumberToName(columnIndex)
+
+	if err != nil {
+		logs.Info("获取列名失败:", err.Error())
+		return "", false
+	}
+
+	cellIndex, err := excelize.JoinCellName(columnName, rowIndex)
+
+	if err != nil {
+		logs.Info("列名索引创建失败:", err.Error())
+		return "", false
+	}
+
+	return cellIndex, true
+}
+
+func setSheetCellFormula(file *excelize.File, sheetName string, rowIndex int, columnIndex int, formatString string) {
+
+	cellIndex, success := getCellDescriptionName(rowIndex, columnIndex)
+
+	if !success {
+		return
+	}
+
+	file.SetCellFormula(sheetName, cellIndex, formatString)
+}
+
+func insertSheetFileCell(file *excelize.File, sheetName string, rowIndex int, columnIndex int, value interface{}) {
+
+	cellIndex, success := getCellDescriptionName(rowIndex, columnIndex)
+
+	if !success {
+		return
+	}
+
+	file.SetCellValue(sheetName, cellIndex, value)
 }
 
 /// 订单明细表
